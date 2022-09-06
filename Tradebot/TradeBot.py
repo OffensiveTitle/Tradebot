@@ -32,7 +32,7 @@ def tryToTrade():
     twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
     if sevenDayAverage < twentyOneDayAverage and returnBalance() > returnCurrentPrice():
         placeBuyOrder()
-    elif sevenDayAverage > twentyOneDayAverage and IB.positions():
+    elif sevenDayAverage > twentyOneDayAverage:
         placeSellOrder()
 
 def placeBuyOrder():
