@@ -8,6 +8,9 @@ IB = IB()
 CONTRACT = Stock("AMD", "SMART", "USD")
 f = open('logs.txt', 'a')
 
+#Placeholders
+tradeStatus = True #True = Buy, False = Sell
+
 #Funcs
 def returnAveragePrice(period = "7d", stock = "AMD"):
     stock = yf.Ticker(stock)
@@ -28,12 +31,14 @@ def returnBalance():
 
 #Trading Sequence
 def tryToTrade():
-    sevenDayAverage = returnAveragePrice("7d", CONTRACT.symbol)
+    twoHundredDayAverage = returnAveragePrice("200d", CONTRACT.symbol)
     twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
-    if sevenDayAverage < twentyOneDayAverage and returnBalance() > returnCurrentPrice():
+    if returnCurrentPrice() < twentyOneDayAverage and returnBalance() > returnCurrentPrice() and returnCurrentPrice() > twoHundredDayAverage and tradeStatus == True:
         placeBuyOrder()
-    elif sevenDayAverage > twentyOneDayAverage:
+        tradeStatus = False
+    elif returnCurrentPrice() > twentyOneDayAverage:
         placeSellOrder()
+        tradeStatus = True
 
 def placeBuyOrder():
     f = open('logs.txt', 'a')
@@ -65,6 +70,7 @@ def placeSellOrder():
     f.close()
 
 def runProgram():
+    tradeStatus = True
     while(1>0):
         t = time.localtime()
         if (t.tm_hour <= 15 and t.tm_hour > 9 and IB.isConnected() == False):
@@ -76,7 +82,7 @@ def runProgram():
             while(t.tm_hour <= 15 and t.tm_hour > 9 and IB.isConnected() == True):
                 t = time.localtime()
                 tryToTrade()
-                IB.sleep(86400)
+                IB.sleep(30)
             else:
                 if(IB.isConnected() == True):
                     f = open('logs.txt', 'a')
