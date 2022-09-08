@@ -33,6 +33,7 @@ def returnBalance():
 def tryToTrade():
     twoHundredDayAverage = returnAveragePrice("200d", CONTRACT.symbol)
     twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
+    deviationRatio = returnCurrentPrice() / twentyOneDayAverage
     if returnCurrentPrice() < twentyOneDayAverage and returnBalance() > returnCurrentPrice() and returnCurrentPrice() > twoHundredDayAverage and tradeStatus == True:
         placeBuyOrder()
         tradeStatus = False
@@ -91,4 +92,9 @@ def runProgram():
                     IB.disconnect()
         IB.sleep(15)
 
-runProgram()
+#runProgram()
+
+twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
+deviationRatio = returnCurrentPrice() / twentyOneDayAverage
+print(twentyOneDayAverage, returnCurrentPrice(), deviationRatio)
+
