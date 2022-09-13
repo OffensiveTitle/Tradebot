@@ -2,99 +2,108 @@ from ib_insync import *
 import yfinance as yf
 import time
 
+# Const
+ib = IB()
+contract = Stock("AMD", "SMART", "USD")
 
-#Const
-IB = IB()
-CONTRACT = Stock("AMD", "SMART", "USD")
-f = open('logs.txt', 'a')
+# Placeholders
+tradeStatus = True  # True = Buy, False = Sell
+lastOpPrice = 0
 
-#Placeholders
-tradeStatus = True #True = Buy, False = Sell
 
-#Funcs
-def returnAveragePrice(period = "7d", stock = "AMD"):
+# Funcs
+def returnAveragePrice(period, stock=contract.symbol):
     stock = yf.Ticker(stock)
     stockHistory = stock.history(period=period)
     highAv = stockHistory["High"].mean()
     lowAv = stockHistory["Low"].mean()
-    return round((highAv + lowAv)/2, 2)
-def numGen ():
+    return round((highAv + lowAv) / 2, 2)
+
+
+def numGen():
     return int(time.time())
-def returnCurrentPrice(stock = "AMD"):
+
+
+def returnCurrentPrice(stock=contract.symbol):
     stock = yf.Ticker(stock)
     return stock.info["currentPrice"]
-def returnBalance():
-    accountBalanceString = IB.accountSummary()
-    for a in accountBalanceString:
-	    if a.tag=="AvailableFunds":
-		    return float(a.value)
 
-#Trading Sequence
+
+def returnBalance():
+    accountBalanceString = ib.accountSummary()
+    for a in accountBalanceString:
+        if a.tag == "AvailableFunds":
+            return float(a.value)
+
+
+# Trading Sequence
 def tryToTrade():
-    twoHundredDayAverage = returnAveragePrice("200d", CONTRACT.symbol)
-    twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
+    global tradeStatus
+    twoHundredDayAverage = returnAveragePrice("200d", contract.symbol)
+    twentyOneDayAverage = returnAveragePrice("30d", contract.symbol)
     deviationRatio = returnCurrentPrice() / twentyOneDayAverage
-    if returnCurrentPrice() < twentyOneDayAverage and returnBalance() > returnCurrentPrice() and returnCurrentPrice() > twoHundredDayAverage and tradeStatus == True:
+    if deviationRatio < 1 and returnBalance() > returnCurrentPrice() > twoHundredDayAverage and tradeStatus:
         placeBuyOrder()
         tradeStatus = False
-    elif returnCurrentPrice() > twentyOneDayAverage:
+    elif deviationRatio > 1:
         placeSellOrder()
         tradeStatus = True
+
 
 def placeBuyOrder():
     f = open('logs.txt', 'a')
     f.write('Placing buy order. \n')
     f.close()
-    NONCE = numGen()
+    nonce = numGen()
     buyOrder = MarketOrder("BUY", 1)
-    buyOrder.orderId = NONCE
-    IB.qualifyContracts(CONTRACT)
-    IB.placeOrder(CONTRACT, buyOrder)
+    buyOrder.orderId = nonce
+    ib.qualifyContracts(contract)
+    ib.placeOrder(contract, buyOrder)
     global lastOpPrice
     lastOpPrice = returnCurrentPrice()
     f = open('logs.txt', 'a')
-    f.write(f'Placing buy order completed.\nPrice was {lastOpPrice}\nOrder ID is {NONCE}.\n')
+    f.write(f'Placing buy order completed.\nPrice was {lastOpPrice}\nOrder ID is {nonce}.\n')
     f.close()
+
+
 def placeSellOrder():
     f = open('logs.txt', 'a')
     f.write('Placing sell order. \n')
     f.close()
-    NONCE = numGen()
+    nonce = numGen()
     sellOrder = MarketOrder("SELL", 1)
-    sellOrder.orderId = NONCE
-    IB.qualifyContracts(CONTRACT)
-    IB.placeOrder(contract, sellOrder)
+    sellOrder.orderId = nonce
+    ib.qualifyContracts(contract)
+    ib.placeOrder(contract, sellOrder)
     global lastOpPrice
     lastOpPrice = returnCurrentPrice()
     f = open('logs.txt', 'a')
-    f.write(f'Placing sell order completed.\nPrice was {lastOpPrice}\nOrder ID is {NONCE}.\n')
+    f.write(f'Placing sell order completed.\nPrice was {lastOpPrice}\nOrder ID is {nonce}.\n')
     f.close()
 
+
 def runProgram():
+    global tradeStatus
     tradeStatus = True
-    while(1>0):
+    while 1 > 0:
         t = time.localtime()
-        if (t.tm_hour <= 15 and t.tm_hour > 9 and IB.isConnected() == False):
+        if 15 >= t.tm_hour > 9 and not ib.isConnected():
             f = open('logs.txt', 'a')
             f.write("\nConnecting... \n")
             f.close()
-            IB.connect(host="127.0.0.1", port="7497", clientId=1)
+            ib.connect(host="127.0.0.1", port=7497, clientId=1)
             t = time.localtime()
-            while(t.tm_hour <= 15 and t.tm_hour > 9 and IB.isConnected() == True):
+            while 15 >= t.tm_hour > 9 and ib.isConnected():
                 t = time.localtime()
                 tryToTrade()
-                IB.sleep(30)
+                ib.sleep(30)
             else:
-                if(IB.isConnected() == True):
+                if ib.isConnected():
                     f = open('logs.txt', 'a')
                     f.write('Disconnecting...\n')
                     f.close()
-                    IB.disconnect()
-        IB.sleep(15)
+                    ib.disconnect()
+        ib.sleep(15)
 
-#runProgram()
 
-twentyOneDayAverage = returnAveragePrice("21d", CONTRACT.symbol)
-deviationRatio = returnCurrentPrice() / twentyOneDayAverage
-print(twentyOneDayAverage, returnCurrentPrice(), deviationRatio)
-
+runProgram()
